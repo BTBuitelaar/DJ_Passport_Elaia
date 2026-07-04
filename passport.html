@@ -75,6 +75,23 @@ body {
   }
 }
 
+.passport-header {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 32px;
+  padding: 0 24px;
+}
+
+.full-divider {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 1px;
+  background: #e0e0e0;
+  margin-bottom: 32px;
+}
+
 .passport {
   width: 100%;
   max-width: 480px;
@@ -84,22 +101,6 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0;
-}
-
-.passport-header {
-  width: 100%;
-  text-align: center;
-  margin-bottom: 32px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.divider {
-  width: 100%;
-  height: 1px;
-  background: #e0e0e0;
-  margin: 0 0 32px 0;
 }
 
 .passport-title {
@@ -181,14 +182,13 @@ body {
 <img src="doric-logo-text.png" alt="Doric Jewelry" class="passport-logo-overlay">
 </div>
 
-<div class="passport">
-
 <div class="passport-header">
-<div class="divider"></div>
 <h1 class="passport-title">Jewelry Passport</h1>
 </div>
 
-<div class="divider"></div>
+<div class="full-divider"></div>
+
+<div class="passport">
 
 <img src="labradoriet.png" alt="Labradorite" class="stone-image">
 

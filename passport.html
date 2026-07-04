@@ -62,8 +62,8 @@ z-index: 2;
 display: flex;
 align-items: center;
 justify-content: center;
-padding: 13px 24px;
-border-radius: 17px;
+padding: 18px 32px;
+border-radius: 22px;
 }
 
 .glass-canvas {
@@ -86,7 +86,7 @@ backdrop-filter: blur(6px) saturate(180%);
 }
 
 .passport-logo-overlay {
-width: 204px;
+width: 272px;
 height: auto;
 display: block;
 position: relative;
@@ -101,11 +101,11 @@ max-height: 150px;
 max-height: 150px;
 }
 .glass-chip {
-padding: 8px 14px;
-border-radius: 12px;
+padding: 11px 19px;
+border-radius: 16px;
 }
 .passport-logo-overlay {
-width: 144px;
+width: 192px;
 }
 }
 
@@ -287,7 +287,7 @@ letter-spacing: 1px;
     'uniform float u_refractStrength;',
     'uniform float u_dispersion;',
     'uniform float u_fresnelIntensity;',
-    'uniform float u_blurLod;',
+    'uniform float u_blurRadius;',
     'uniform sampler2D u_videoTex;',
     'uniform vec2 u_renderedVideoSize;',
     'uniform vec2 u_videoOffset;',
@@ -308,11 +308,24 @@ letter-spacing: 1px;
     '  return len > 0.0001 ? n / len : vec2(0.0);',
     '}',
     '',
-    'vec3 sampleVideo(vec2 wrapperPx, float lod) {',
+    'vec3 sampleVideoAt(vec2 uv) {',
+    '  return texture(u_videoTex, clamp(uv, 0.0, 1.0)).rgb;',
+    '}',
+    '',
+    'vec3 sampleVideo(vec2 wrapperPx, float blurPx) {',
     '  vec2 uv = (wrapperPx + u_videoOffset) / u_renderedVideoSize;',
     '  uv.y = 1.0 - uv.y;',
-    '  uv = clamp(uv, 0.0, 1.0);',
-    '  return textureLod(u_videoTex, uv, lod).rgb;',
+    '  vec2 texel = blurPx / u_renderedVideoSize;',
+    '  vec3 sum = sampleVideoAt(uv) * 4.0;',
+    '  sum += sampleVideoAt(uv + vec2(texel.x, 0.0));',
+    '  sum += sampleVideoAt(uv - vec2(texel.x, 0.0));',
+    '  sum += sampleVideoAt(uv + vec2(0.0, texel.y));',
+    '  sum += sampleVideoAt(uv - vec2(0.0, texel.y));',
+    '  sum += sampleVideoAt(uv + texel) * 0.7;',
+    '  sum += sampleVideoAt(uv - texel) * 0.7;',
+    '  sum += sampleVideoAt(uv + vec2(texel.x, -texel.y)) * 0.7;',
+    '  sum += sampleVideoAt(uv + vec2(-texel.x, texel.y)) * 0.7;',
+    '  return sum / 9.8;',
     '}',
     '',
     'void main() {',
@@ -333,13 +346,13 @@ letter-spacing: 1px;
     '',
     '  vec2 wrapperPx = u_chipOffset + p_topleft;',
     '  vec2 refractOffset = normal * edgeFactor * u_refractStrength;',
-    '  float lod = mix(u_blurLod, u_blurLod * 0.12, edgeFactor);',
+    '  float blurPx = mix(u_blurRadius, u_blurRadius * 0.12, edgeFactor);',
     '  vec2 baseSamplePx = wrapperPx + refractOffset;',
     '  float dOff = edgeFactor * u_dispersion;',
     '',
-    '  vec3 colR = sampleVideo(baseSamplePx + normal * dOff * 1.6, lod);',
-    '  vec3 colG = sampleVideo(baseSamplePx, lod);',
-    '  vec3 colB = sampleVideo(baseSamplePx - normal * dOff * 1.6, lod);',
+    '  vec3 colR = sampleVideo(baseSamplePx + normal * dOff * 1.6, blurPx);',
+    '  vec3 colG = sampleVideo(baseSamplePx, blurPx);',
+    '  vec3 colB = sampleVideo(baseSamplePx - normal * dOff * 1.6, blurPx);',
     '  vec3 col = vec3(colR.r, colG.g, colB.b);',
     '',
     '  col = mix(col, vec3(1.0), 0.05);',
@@ -392,7 +405,7 @@ letter-spacing: 1px;
   var uRefractStrength = gl.getUniformLocation(program, 'u_refractStrength');
   var uDispersion = gl.getUniformLocation(program, 'u_dispersion');
   var uFresnelIntensity = gl.getUniformLocation(program, 'u_fresnelIntensity');
-  var uBlurLod = gl.getUniformLocation(program, 'u_blurLod');
+  var uBlurRadius = gl.getUniformLocation(program, 'u_blurRadius');
   var uVideoTex = gl.getUniformLocation(program, 'u_videoTex');
   var uRenderedVideoSize = gl.getUniformLocation(program, 'u_renderedVideoSize');
   var uVideoOffset = gl.getUniformLocation(program, 'u_videoOffset');
@@ -402,7 +415,7 @@ letter-spacing: 1px;
   gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
 
@@ -415,7 +428,8 @@ letter-spacing: 1px;
     radius: 28,
     edgeThickness: 16,
     refractStrength: 10,
-    dispersion: 2.2
+    dispersion: 2.2,
+    blurRadius: 9
   };
 
   function updateGeometry() {
@@ -451,6 +465,7 @@ letter-spacing: 1px;
     geo.edgeThickness = Math.max(4, radiusPx * 0.35) * dpr;
     geo.refractStrength = 10 * dpr;
     geo.dispersion = 2.2 * dpr;
+    geo.blurRadius = 9 * dpr;
   }
 
   window.addEventListener('resize', updateGeometry);
@@ -466,7 +481,6 @@ letter-spacing: 1px;
     gl.bindTexture(gl.TEXTURE_2D, tex);
     try {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
-      gl.generateMipmap(gl.TEXTURE_2D);
     } catch (e) {
       return;
     }
@@ -478,7 +492,7 @@ letter-spacing: 1px;
     gl.uniform1f(uRefractStrength, geo.refractStrength);
     gl.uniform1f(uDispersion, geo.dispersion);
     gl.uniform1f(uFresnelIntensity, 0.18);
-    gl.uniform1f(uBlurLod, 2.5);
+    gl.uniform1f(uBlurRadius, geo.blurRadius);
     gl.uniform2f(uRenderedVideoSize, geo.renderedVideoSize[0], geo.renderedVideoSize[1]);
     gl.uniform2f(uVideoOffset, geo.videoOffset[0], geo.videoOffset[1]);
     gl.uniform2f(uChipOffset, geo.chipOffset[0], geo.chipOffset[1]);

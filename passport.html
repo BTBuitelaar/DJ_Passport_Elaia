@@ -395,7 +395,7 @@ c.closePath();
 }
 
 function computeField(w, h, radius) {
-var edge = Math.max(4, radius * 0.15);
+var edge = Math.max(5, radius * 0.15);
 var mask = document.createElement('canvas');
 mask.width = w; mask.height = h;
 var mctx = mask.getContext('2d');
@@ -408,7 +408,7 @@ mctx.fill();
 var blurred = document.createElement('canvas');
 blurred.width = w; blurred.height = h;
 var bctx = blurred.getContext('2d');
-bctx.filter = 'blur(' + Math.max(14, radius * 0.55) + 'px)';
+bctx.filter = 'blur(' + Math.max(6, radius * 0.25) + 'px)';
 bctx.drawImage(mask, 0, 0);
 
 var data;
@@ -467,7 +467,7 @@ var dxS = boxBlur(boxBlur(dx));
       var a1 = Math.abs(dxS[mi]); if (a1 > maxAbs) maxAbs = a1;
       var a2 = Math.abs(dyS[mi]); if (a2 > maxAbs) maxAbs = a2;
     }
-    var norm = maxAbs > 0.0001 ? (95 / maxAbs) : 1;
+    var norm = maxAbs > 0.0001 ? (60 / maxAbs) : 1;
     for (var mj = 0; mj < dxS.length; mj++) { dxS[mj] *= norm; dyS[mj] *= norm; }
 
     return { dx: dxS, dy: dyS };
